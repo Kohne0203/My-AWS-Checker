@@ -4,8 +4,16 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"log"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +32,10 @@ to quickly create a Cobra application.`,
 	},
 }
 
+type BucketBasics struct {
+	S3Client *s3.Client
+}
+
 func init() {
 	rootCmd.AddCommand(s3Cmd)
 
@@ -36,4 +48,48 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// s3Cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	//
+	// load the AWS configuration
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// create an S3 service client
+	clientBasic := BucketBasics{
+		S3Client: s3.NewFromConfig(cfg),
+	}
+
+	// get the list of objects in the bucket
+	output, err := clientBasic.ListBuckets(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, bucket := range output {
+		log.Printf("bucket=%s", aws.ToString(bucket.Name))
+	}
+}
+
+func (basics BucketBasics) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
+	var err error
+	var output *s3.ListBucketsOutput
+	var buckets []types.Bucket
+	bucketPaginator := s3.NewListBucketsPaginator(basics.S3Client, &s3.ListBucketsInput{})
+	for bucketPaginator.HasMorePages() {
+		output, err = bucketPaginator.NextPage(ctx)
+		if err != nil {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "AccessDenied" {
+				fmt.Println("You don't have permission to access this bucket for this account")
+				err = apiErr
+			} else {
+				log.Printf("Could not list buckets: %v", err)
+			}
+			break
+		} else {
+			buckets = append(buckets, output.Buckets...)
+		}
+	}
+	return buckets, err
 }
