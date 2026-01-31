@@ -29,6 +29,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("S3 check start")
+		checkBuckets()
 	},
 }
 
@@ -38,7 +39,6 @@ type BucketBasics struct {
 
 func init() {
 	rootCmd.AddCommand(s3Cmd)
-
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
@@ -49,7 +49,9 @@ func init() {
 	// is called directly, e.g.:
 	// s3Cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	//
-	// load the AWS configuration
+}
+
+func checkBuckets() {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		log.Fatal(err)
@@ -68,6 +70,21 @@ func init() {
 
 	for _, bucket := range output {
 		log.Printf("bucket=%s", aws.ToString(bucket.Name))
+		// 各バケットのパブリックアクセス設定を取得する
+		publicAccess, err := clientBasic.S3Client.GetPublicAccessBlock(context.TODO(), &s3.GetPublicAccessBlockInput{
+			Bucket: bucket.Name,
+		})
+		if err != nil {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NoSuchPublicAccessBlockConfiguration" {
+				fmt.Printf("No public access block configuration found for bucket %s\n", aws.ToString(bucket.Name))
+				continue
+			} else {
+				fmt.Printf("Could not get public access block for bucket %s: %v", aws.ToString(bucket.Name), err)
+			}
+		}
+		status := evaluateBucketStatus(publicAccess.PublicAccessBlockConfiguration)
+		fmt.Printf("Status: %s\n", status)
 	}
 }
 
@@ -92,4 +109,14 @@ func (basics BucketBasics) ListBuckets(ctx context.Context) ([]types.Bucket, err
 		}
 	}
 	return buckets, err
+}
+
+func evaluateBucketStatus(config *types.PublicAccessBlockConfiguration) string {
+	if config == nil {
+		return "Warning - No Configuration"
+	}
+	if *config.BlockPublicAcls && *config.BlockPublicPolicy && *config.IgnorePublicAcls && *config.RestrictPublicBuckets {
+		return "Safe"
+	}
+	return "Warning - Partial Configuration"
 }
