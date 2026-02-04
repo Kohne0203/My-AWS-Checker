@@ -72,6 +72,7 @@ func checkBuckets() {
 		region, err := getBucketRegion(clientBasic.S3Client, aws.ToString(bucket.Name))
 		if err != nil {
 			fmt.Printf("Could not get region for bucket %s: %v", aws.ToString(bucket.Name), err)
+			continue
 		} else {
 			fmt.Printf("Region=%s\n", region)
 		}
