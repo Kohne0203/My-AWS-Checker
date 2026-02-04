@@ -20,13 +20,10 @@ import (
 // s3Cmd represents the s3 command
 var s3Cmd = &cobra.Command{
 	Use:   "s3",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Audit S3 bucket public access settings",
+	Long: `Check all S3 buckets for public access configurations.
+Reports buckets as "Safe" or "Warning" based on their
+PublicAccessBlock settings.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("S3 check start")
 		checkBuckets()
