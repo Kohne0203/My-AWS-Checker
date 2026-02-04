@@ -68,7 +68,13 @@ func checkBuckets() {
 	}
 
 	for _, bucket := range output {
-		log.Printf("bucket=%s", aws.ToString(bucket.Name))
+		fmt.Printf("Bucket=%s\n", aws.ToString(bucket.Name))
+		region, err := getBucketRegion(clientBasic.S3Client, aws.ToString(bucket.Name))
+		if err != nil {
+			fmt.Printf("Could not get region for bucket %s: %v", aws.ToString(bucket.Name), err)
+		} else {
+			fmt.Printf("Region=%s\n", region)
+		}
 		// 各バケットのパブリックアクセス設定を取得する
 		publicAccess, err := clientBasic.S3Client.GetPublicAccessBlock(context.TODO(), &s3.GetPublicAccessBlockInput{
 			Bucket: bucket.Name,
@@ -108,6 +114,20 @@ func (basics BucketBasics) ListBuckets(ctx context.Context) ([]types.Bucket, err
 		}
 	}
 	return buckets, err
+}
+
+func getBucketRegion(client *s3.Client, bucketName string) (string, error) {
+	location, err := client.GetBucketLocation(context.TODO(), &s3.GetBucketLocationInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err != nil {
+		return "", err
+	}
+	region := string(location.LocationConstraint)
+	if region == "" {
+		region = "us-east-1"
+	}
+	return region, nil
 }
 
 func checkBucketStatus(config *types.PublicAccessBlockConfiguration) string {
