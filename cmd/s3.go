@@ -58,7 +58,7 @@ func checkBuckets() {
 		S3Client: s3.NewFromConfig(cfg),
 	}
 
-	// get the list of objects in the bucket
+	// get the list of S3 bucket
 	output, err := clientBasic.ListBuckets(context.TODO())
 	if err != nil {
 		log.Fatal(err)
@@ -68,7 +68,7 @@ func checkBuckets() {
 		fmt.Printf("Bucket=%s\n", aws.ToString(bucket.Name))
 		region, err := getBucketRegion(clientBasic.S3Client, aws.ToString(bucket.Name))
 		if err != nil {
-			fmt.Printf("Could not get region for bucket %s: %v", aws.ToString(bucket.Name), err)
+			fmt.Printf("Could not get region for bucket %s: %v\n", aws.ToString(bucket.Name), err)
 			continue
 		} else {
 			fmt.Printf("Region=%s\n", region)
@@ -83,7 +83,8 @@ func checkBuckets() {
 				fmt.Printf("No public access block configuration found for bucket %s\n", aws.ToString(bucket.Name))
 				continue
 			} else {
-				fmt.Printf("Could not get public access block for bucket %s: %v", aws.ToString(bucket.Name), err)
+				fmt.Printf("Could not get public access block for bucket %s: %v\n", aws.ToString(bucket.Name), err)
+				continue
 			}
 		}
 		status := checkBucketStatus(publicAccess.PublicAccessBlockConfiguration)
