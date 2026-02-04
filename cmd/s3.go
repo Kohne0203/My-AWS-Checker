@@ -82,7 +82,7 @@ func checkBuckets() {
 				fmt.Printf("Could not get public access block for bucket %s: %v", aws.ToString(bucket.Name), err)
 			}
 		}
-		status := evaluateBucketStatus(publicAccess.PublicAccessBlockConfiguration)
+		status := checkBucketStatus(publicAccess.PublicAccessBlockConfiguration)
 		fmt.Printf("Status: %s\n", status)
 	}
 }
@@ -110,7 +110,7 @@ func (basics BucketBasics) ListBuckets(ctx context.Context) ([]types.Bucket, err
 	return buckets, err
 }
 
-func evaluateBucketStatus(config *types.PublicAccessBlockConfiguration) string {
+func checkBucketStatus(config *types.PublicAccessBlockConfiguration) string {
 	if config == nil {
 		return "Warning - No Configuration"
 	}
