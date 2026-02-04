@@ -14,15 +14,15 @@ var rootCmd = &cobra.Command{
 	Use:   "my-aws-checker",
 	Short: "A CLI tool to audit AWS resource security configurations",
 	Long: `my-aws-checker is a command-line tool for auditing AWS resources.
-	It scans your AWS environment and checks for security risks such as
-  misconfigured settings. Currently supports S3 bucket public access auditing.
+It scans your AWS environment and checks for security risks such as
+misconfigured settings. Currently supports S3 bucket public access auditing.
 
-  Example usage:
-    my-aws-checker s3              # Check S3 bucket security configurations
-    my-aws-checker s3 --help       # Show detailed help for S3 command
+Example usage:
+  my-aws-checker s3              # Check S3 bucket security configurations
+  my-aws-checker s3 --help       # Show detailed help for S3 command
 
-  Authentication:
-    Uses AWS credential chain (environment variables, ~/.aws/credentials, or IAM roles)`,
+Authentication:
+Uses AWS credential chain (environment variables, ~/.aws/credentials, or IAM roles)`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -46,5 +46,4 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
