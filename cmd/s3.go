@@ -48,7 +48,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// s3Cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	//
 }
 
 func checkBuckets() {
