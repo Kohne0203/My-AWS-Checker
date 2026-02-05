@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"text/tabwriter"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -58,37 +60,40 @@ func checkBuckets() {
 		S3Client: s3.NewFromConfig(cfg),
 	}
 
-	// get the list of S3 bucket
+	// get the list of S3 buckets
 	output, err := clientBasic.ListBuckets(context.TODO())
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	defer writer.Flush()
+
+	fmt.Fprintln(writer, "BUCKET NAME\tREGION\tSTATUS")
+	fmt.Fprintln(writer, "-----------\t------\t------")
+
 	for _, bucket := range output {
-		fmt.Printf("Bucket=%s\n", aws.ToString(bucket.Name))
+		bucketName := aws.ToString(bucket.Name)
 		region, err := getBucketRegion(clientBasic.S3Client, aws.ToString(bucket.Name))
 		if err != nil {
-			fmt.Printf("Could not get region for bucket %s: %v\n", aws.ToString(bucket.Name), err)
-			continue
-		} else {
-			fmt.Printf("Region=%s\n", region)
+			region = "ERROR"
 		}
-		// 各バケットのパブリックアクセス設定を取得する
+		// get the public access block configuration for the bucket
 		publicAccess, err := clientBasic.S3Client.GetPublicAccessBlock(context.TODO(), &s3.GetPublicAccessBlockInput{
 			Bucket: bucket.Name,
 		})
+		var status string
 		if err != nil {
 			var apiErr smithy.APIError
 			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NoSuchPublicAccessBlockConfiguration" {
-				fmt.Printf("No public access block configuration found for bucket %s\n", aws.ToString(bucket.Name))
-				continue
+				status = "WARNING - No Public Access"
 			} else {
-				fmt.Printf("Could not get public access block for bucket %s: %v\n", aws.ToString(bucket.Name), err)
-				continue
+				status = "ERROR"
 			}
+		} else {
+			status = checkBucketStatus(publicAccess.PublicAccessBlockConfiguration)
 		}
-		status := checkBucketStatus(publicAccess.PublicAccessBlockConfiguration)
-		fmt.Printf("Status: %s\n", status)
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", bucketName, region, status)
 	}
 }
 
