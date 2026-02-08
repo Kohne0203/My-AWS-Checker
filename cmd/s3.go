@@ -5,18 +5,16 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"text/tabwriter"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/smithy-go"
 	"github.com/spf13/cobra"
+
+	s3pkg "my-aws-checker/internal/s3"
 )
 
 // s3Cmd represents the s3 command
@@ -30,10 +28,6 @@ PublicAccessBlock settings.`,
 		fmt.Println("S3 check start")
 		checkBuckets()
 	},
-}
-
-type BucketBasics struct {
-	S3Client *s3.Client
 }
 
 func init() {
@@ -55,13 +49,13 @@ func checkBuckets() {
 		log.Fatal(err)
 	}
 
-	// create an S3 service client
-	clientBasic := BucketBasics{
-		S3Client: s3.NewFromConfig(cfg),
-	}
+	// Create a new S3 client using the loaded configuration
+	s3Client := s3.NewFromConfig(cfg)
 
-	// get the list of S3 buckets
-	output, err := clientBasic.ListBuckets(context.TODO())
+	client := s3pkg.NewClient(s3Client)
+	checker := s3pkg.NewChecker(client)
+
+	results, err := checker.AuditAllBuckets(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,74 +66,7 @@ func checkBuckets() {
 	fmt.Fprintln(writer, "BUCKET NAME\tREGION\tSTATUS")
 	fmt.Fprintln(writer, "-----------\t------\t------")
 
-	for _, bucket := range output {
-		bucketName := aws.ToString(bucket.Name)
-		region, err := getBucketRegion(clientBasic.S3Client, aws.ToString(bucket.Name))
-		if err != nil {
-			region = "ERROR"
-		}
-		// get the public access block configuration for the bucket
-		publicAccess, err := clientBasic.S3Client.GetPublicAccessBlock(context.TODO(), &s3.GetPublicAccessBlockInput{
-			Bucket: bucket.Name,
-		})
-		var status string
-		if err != nil {
-			var apiErr smithy.APIError
-			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NoSuchPublicAccessBlockConfiguration" {
-				status = "WARNING - No Public Access"
-			} else {
-				status = "ERROR"
-			}
-		} else {
-			status = checkBucketStatus(publicAccess.PublicAccessBlockConfiguration)
-		}
-		fmt.Fprintf(writer, "%s\t%s\t%s\n", bucketName, region, status)
+	for _, result := range results {
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", result.BucketName, result.Region, result.Status)
 	}
-}
-
-func (basics BucketBasics) ListBuckets(ctx context.Context) ([]types.Bucket, error) {
-	var err error
-	var output *s3.ListBucketsOutput
-	var buckets []types.Bucket
-	bucketPaginator := s3.NewListBucketsPaginator(basics.S3Client, &s3.ListBucketsInput{})
-	for bucketPaginator.HasMorePages() {
-		output, err = bucketPaginator.NextPage(ctx)
-		if err != nil {
-			var apiErr smithy.APIError
-			if errors.As(err, &apiErr) && apiErr.ErrorCode() == "AccessDenied" {
-				fmt.Println("You don't have permission to access this bucket for this account")
-				err = apiErr
-			} else {
-				log.Printf("Could not list buckets: %v", err)
-			}
-			break
-		} else {
-			buckets = append(buckets, output.Buckets...)
-		}
-	}
-	return buckets, err
-}
-
-func getBucketRegion(client *s3.Client, bucketName string) (string, error) {
-	location, err := client.GetBucketLocation(context.TODO(), &s3.GetBucketLocationInput{
-		Bucket: aws.String(bucketName),
-	})
-	if err != nil {
-		return "", err
-	}
-	region := string(location.LocationConstraint)
-	if region == "" {
-		region = "us-east-1"
-	}
-	return region, nil
-}
-
-func checkBucketStatus(config *types.PublicAccessBlockConfiguration) string {
-	if config == nil {
-		return "Warning - No Configuration"
-	}
-	if *config.BlockPublicAcls && *config.BlockPublicPolicy && *config.IgnorePublicAcls && *config.RestrictPublicBuckets {
-		return "Safe"
-	}
-	return "Warning - Partial Configuration"
 }
