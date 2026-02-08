@@ -59,6 +59,7 @@ func (c *Client) GetBucketRegion(ctx context.Context, bucketName string) (string
 		return "", err
 	}
 	region := string(location.LocationConstraint)
+	// us-east-1は空文字で返ってくるため、変数に詰める必要がある
 	if region == "" {
 		region = "us-east-1"
 	}
