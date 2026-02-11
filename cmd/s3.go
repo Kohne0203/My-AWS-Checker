@@ -10,10 +10,10 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/spf13/cobra"
 
+	awspkg "my-aws-checker/internal/aws"
 	s3pkg "my-aws-checker/internal/s3"
 )
 
@@ -44,7 +44,7 @@ func init() {
 }
 
 func checkBuckets() {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := awspkg.LoadConfig(context.TODO())
 	if err != nil {
 		log.Fatal(err)
 	}
