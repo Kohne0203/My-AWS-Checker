@@ -1,17 +1,17 @@
 .PHONY: build test clean
 
-BINARY_NAME = awscheck
+BINARY_NAME=awscheck
 
 build:
-    go build -o $(BINARY_NAME)
+	go build -o $(BINARY_NAME)
 
 test:
-    go test -v ./...
+	go test -v ./...
 
 clean:
-    rm -f $(BINARY_NAME)
+	rm -f $(BINARY_NAME)
 
 install:
-    go install
+	go install
 
 .DEFAULT_GOAL := build
