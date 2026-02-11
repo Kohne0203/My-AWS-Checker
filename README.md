@@ -77,10 +77,10 @@ region = ap-northeast-1
 S3 check start
 BUCKET NAME                                REGION           STATUS
 -----------                                ------           ------
-cf-templates-511105rkg24l-ap-northeast-1   ap-northeast-1   SAFE
-codepipeline-ap-northeast-1-495187879750   ap-northeast-1   WARNING: NO CONFIGURATION
-discord-bot-14-bucket                      ap-northeast-1   SAFE
-webhosting-cloudfront24-226                ap-northeast-1   WARNING: PARTIAL CONFIGURATION
+my-application-logs                        ap-northeast-1   SAFE
+static-website-assets                      ap-northeast-1   WARNING: NO CONFIGURATION
+user-uploads-bucket                        us-east-1        SAFE
+backup-storage-2024                        ap-northeast-1   WARNING: PARTIAL CONFIGURATION
 ```
 
 ### ステータスの意味
