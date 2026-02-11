@@ -26,7 +26,7 @@ Reports buckets as "Safe" or "Warning" based on their
 PublicAccessBlock settings.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("S3 check start")
-		checkBuckets()
+		runS3Check()
 	},
 }
 
@@ -43,7 +43,7 @@ func init() {
 	// s3Cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func checkBuckets() {
+func runS3Check() {
 	cfg, err := awspkg.LoadConfig(context.TODO())
 	if err != nil {
 		log.Fatal(err)
